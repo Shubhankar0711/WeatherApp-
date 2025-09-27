@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Mini Weather App</title>
+    <style>
+      :root {
+        --card-w: 420px;
+        --card-h: 540px;
+        --radius: 18px;
+        --glass: rgba(255, 255, 255, 0.06);
+        --accent: rgba(255, 255, 255, 0.12);
+        font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial;
+      }
+
+      /* page layout */
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+      }
+      body {
+        display: grid;
+        place-items: center;
+        background: linear-gradient(
+          135deg,
+          #0f172a 0%,
+          #071133 50%,
+          #00122b 100%
+        );
+        overflow: hidden;
+        -webkit-font-smoothing: antialiased;
+        color: #e6f0ff;
+      }
+
+      /* animated starry/gradient backdrop */
+      .bg {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+      }
+      .bg::before {
+        content: "";
+        position: absolute;
+        inset: -50% -50%;
+        background: radial-gradient(
+            circle at 20% 20%,
+            rgba(255, 255, 255, 0.06),
+            transparent 2%
+          ),
+          radial-gradient(
+            circle at 80% 80%,
+            rgba(255, 255, 255, 0.03),
+            transparent 2%
+          );
+        animation: drift 20s linear infinite;
+        filter: blur(12px);
+      }
+      @keyframes drift {
+        from {
+          transform: translateY(0) rotate(0deg);
+        }
+        to {
+          transform: translateY(-20px) rotate(360deg);
+        }
+      }
+
+      /* weather card */
+      .card {
+        width: var(--card-w);
+        height: var(--card-h);
+        border-radius: var(--radius);
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(2, 6, 23, 0.6),
+          inset 0 1px 0 rgba(255, 255, 255, 0.02);
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.02),
+          rgba(255, 255, 255, 0.01)
+        );
+        border: 1px solid rgba(255, 255, 255, 0.04);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 22px;
+      }
+
+      /* animated sky panel (top portion) */
+      .sky {
+        width: 100%;
+        height: 55%;
+        border-radius: 14px;
+        background: linear-gradient(180deg, #5bd3ff33 0%, #6fa9ff11 100%);
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+      }
+
+      /* moving sun/moon */
+      .orb {
+        width: 110px;
+        height: 110px;
+        border-radius: 999px;
+        background: radial-gradient(circle at 30% 30%, #fff9c4, #ffd54f);
+        box-shadow: 0 20px 60px rgba(255, 210, 80, 0.14),
+          inset -12px -8px 40px rgba(255, 255, 255, 0.12);
+        transform: translateY(0);
+        animation: floatOrb 6s ease-in-out infinite;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      @keyframes floatOrb {
+        0% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-12px);
+        }
+        100% {
+          transform: translateY(0);
+        }
+      }
+
+      /* drifting clouds */
+      .clouds {
+        position: absolute;
+        inset: 8px 0 auto 0;
+        height: 120px;
+        pointer-events: none;
+      }
+      .cloud {
+        position: absolute;
+        top: 8px;
+        background: rgba(255, 255, 255, 0.12);
+        height: 48px;
+        border-radius: 40px;
+        filter: blur(6px);
+      }
+      .cloud:after {
+        content: "";
+        position: absolute;
+        left: 18px;
+        top: -18px;
+        width: 70px;
+        height: 70px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.12);
+      }
+      .cloud.c1 {
+        left: -20%;
+        width: 160px;
+        animation: cloudMove 28s linear infinite;
+      }
+      .cloud.c2 {
+        left: -40%;
+        top: 40px;
+        width: 220px;
+        animation: cloudMove 36s linear infinite;
+      }
+      @keyframes cloudMove {
+        from {
+          transform: translateX(0);
+        }
+        to {
+          transform: translateX(220%);
+        }
+      }
+
+      /* info area */
+      .info {
+        width: 100%;
+        padding: 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        align-items: center;
+      }
+      .location {
+        font-weight: 700;
+        font-size: 20px;
+      }
+      .tempRow {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+      .temp {
+        font-size: 54px;
+        font-weight: 800;
+        line-height: 1;
+      }
+      .cond {
+        font-size: 16px;
+        opacity: 0.95;
+      }
+
+      /* small details */
+      .meta {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        font-size: 13px;
+        opacity: 0.9;
+      }
+
+      /* controls */
+      .controls {
+        width: 100%;
+        display: flex;
+        gap: 8px;
+        margin-top: 8px;
+      }
+      input[type="text"] {
+        flex: 1;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        background: transparent;
+        color: inherit;
+        outline: none;
+      }
+      button {
+        padding: 10px 14px;
+        border-radius: 10px;
+        border: none;
+        background: linear-gradient(90deg, #567dff, #2bd3ff);
+        color: #021233;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      /* footer small */
+      .small {
+        font-size: 12px;
+        opacity: 0.85;
+      }
+
+      /* responsive */
+      @media (max-width: 480px) {
+        :root {
+          --card-w: 340px;
+          --card-h: 520px;
+        }
+      }
+
+      /* subtle pulse when data updates */
+      .pulse {
+        animation: pop 650ms ease-out;
+      }
+      @keyframes pop {
+        0% {
+          transform: scale(0.995);
+          opacity: 0.9;
+        }
+        50% {
+          transform: scale(1.02);
+          opacity: 1;
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="bg"></div>
+
+    <div class="card" id="app">
+      <div class="sky">
+        <div class="clouds" aria-hidden="true">
+          <div class="cloud c1"></div>
+          <div class="cloud c2"></div>
+        </div>
+
+        <div class="orb" id="orb">
+          <!-- condition icon will be placed inside -->
+          <img
+            id="condIcon"
+            src=""
+            alt=""
+            style="
+              width: 86px;
+              height: 86px;
+              filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.25));
+              display: none;
+            "
+          />
+        </div>
+      </div>
+
+      <div class="info">
+        <div
+          style="
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          "
+        >
+          <div>
+            <div class="location" id="location">Enter a location</div>
+            <div class="cond" id="condition">Type a city, e.g. London</div>
+          </div>
+          <div style="text-align: right">
+            <div class="temp" id="temp">--°C</div>
+            <div class="small" id="lastUpdated">—</div>
+          </div>
+        </div>
+
+        <div class="controls">
+          <input
+            id="q"
+            type="text"
+            placeholder="City or ZIP or 'lat,lon'"
+            aria-label="location input"
+          />
+          <button id="search">Check</button>
+        </div>
+
+        <div class="meta">
+          <div>Humidity: <span id="humidity">—</span></div>
+          <div>Wind: <span id="wind">—</span></div>
+        </div>
+
+        <div
+          style="
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            margin-top: 8px;
+          "
+        >
+          <div class="small">Stay updated with WeatherApp</div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // ====== CONFIG - using the API key you provided ======
+      const API_KEY = "YOUR_API_KEY_HERE";
+      const BASE_URL = "https://api.weatherapi.com/v1/current.json";
+
+      // DOM
+      const qInput = document.getElementById("q");
+      const searchBtn = document.getElementById("search");
+      const locationEl = document.getElementById("location");
+      const conditionEl = document.getElementById("condition");
+      const tempEl = document.getElementById("temp");
+      const humidityEl = document.getElementById("humidity");
+      const windEl = document.getElementById("wind");
+      const lastUpdatedEl = document.getElementById("lastUpdated");
+      const condIcon = document.getElementById("condIcon");
+      const orb = document.getElementById("orb");
+      const app = document.getElementById("app");
+
+      // helper: format time
+      function formatTime(t) {
+        try {
+          const d = new Date(t);
+          return d.toLocaleString();
+        } catch (e) {
+          return t;
+        }
+      }
+
+      // fetch weather
+      async function getWeather(q) {
+        if (!q) return;
+        const url = `${BASE_URL}?key=${API_KEY}&q=${encodeURIComponent(
+          q
+        )}&aqi=yes`;
+        try {
+          searchBtn.disabled = true;
+          searchBtn.textContent = "...";
+          const res = await fetch(url);
+          if (!res.ok) {
+            const txt = await res.text();
+            throw new Error(
+              "Network response was not ok: " + res.status + " " + txt
+            );
+          }
+          const data = await res.json();
+          render(data);
+        } catch (err) {
+          console.error(err);
+          locationEl.textContent = "Error";
+          conditionEl.textContent = err.message || "Could not fetch";
+          tempEl.textContent = "--°C";
+          condIcon.style.display = "none";
+        } finally {
+          searchBtn.disabled = false;
+          searchBtn.textContent = "Check";
+        }
+      }
+
+      // render
+      function render(d) {
+        if (!d || !d.location || !d.current) return;
+        // text
+        locationEl.textContent = `${d.location.name}, ${
+          d.location.region || d.location.country
+        }`;
+        conditionEl.textContent = d.current.condition.text;
+        tempEl.textContent = Math.round(d.current.temp_c) + "°C";
+        humidityEl.textContent = d.current.humidity + "%";
+        windEl.textContent = d.current.wind_kph + " kph";
+        lastUpdatedEl.textContent = "Local time: " + d.location.localtime;
+
+        // icon
+        if (d.current.condition.icon) {
+          // WeatherAPI icons are sometimes prefixed with //
+          let iconUrl = d.current.condition.icon;
+          if (iconUrl.startsWith("//")) iconUrl = "https:" + iconUrl;
+          condIcon.src = iconUrl;
+          condIcon.style.display = "block";
+        } else condIcon.style.display = "none";
+
+        // subtle visual changes based on condition
+        applyTheme(d.current);
+
+        // small animation to call out update
+        app.classList.remove("pulse");
+        void app.offsetWidth;
+        app.classList.add("pulse");
+      }
+
+      // change orb color and background slightly depending on condition
+      function applyTheme(current) {
+        const txt = (current.condition.text || "").toLowerCase();
+        const card = document.querySelector(".card");
+        if (txt.includes("cloud") || txt.includes("overcast")) {
+          orb.style.background =
+            "radial-gradient(circle at 30% 30%, #ffffffcc, #cbd5e1)";
+          card.style.background =
+            "linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01))";
+        } else if (
+          txt.includes("rain") ||
+          txt.includes("shower") ||
+          txt.includes("drizzle")
+        ) {
+          orb.style.background =
+            "radial-gradient(circle at 30% 30%, #e6f7ff, #91c8ff)";
+          card.style.background =
+            "linear-gradient(180deg, rgba(9,30,60,0.16), rgba(3,12,30,0.06))";
+        } else if (txt.includes("snow")) {
+          orb.style.background =
+            "radial-gradient(circle at 30% 30%, #ffffff, #bfe8ff)";
+          card.style.background =
+            "linear-gradient(180deg, rgba(255,255,255,0.02), rgba(220,240,255,0.03))";
+        } else if (txt.includes("clear") || txt.includes("sunny")) {
+          orb.style.background =
+            "radial-gradient(circle at 30% 30%, #fff9c4, #ffd54f)";
+          card.style.background =
+            "linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,240,200,0.02))";
+        } else {
+          orb.style.background =
+            "radial-gradient(circle at 30% 30%, #f0f4ff, #b8d9ff)";
+          card.style.background =
+            "linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01))";
+        }
+
+        // if it's windy add a slight rotate to orb
+        if (current.wind_kph > 40) {
+          orb.style.transform = "translateY(-6px) rotate(6deg)";
+        } else orb.style.transform = "";
+      }
+
+      // events
+      searchBtn.addEventListener("click", () =>
+        getWeather(qInput.value.trim())
+      );
+      qInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") getWeather(qInput.value.trim());
+      });
+
+      // bonus: try to detect user location using geolocation and reverse lookup (lat,lon sent directly works with WeatherAPI)
+      (async function tryGeo() {
+        if (!navigator.geolocation) return;
+        try {
+          navigator.geolocation.getCurrentPosition(
+            async (pos) => {
+              const lat = pos.coords.latitude.toFixed(4);
+              const lon = pos.coords.longitude.toFixed(4);
+              qInput.value = `${lat},${lon}`;
+              // auto-run first lookup
+              await getWeather(qInput.value);
+            },
+            () => {
+              /*ignore*/
+            }
+          );
+        } catch (e) {
+          /*ignore*/
+        }
+      })();
+    </script>
+  </body>
+</html>
