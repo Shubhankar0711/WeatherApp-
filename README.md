@@ -16,5 +16,7 @@ A simple Weather App that fetches real-time weather data for any city using a we
 
 ## 🛠️ Tech Stack
 
-- **Frontend:** HTML, CSS, JavaScript  
+- **Frontend:** HTML, CSS, JavaScript
+
+- API: WeatherAPI (https://www.weatherapi.com/)
 
