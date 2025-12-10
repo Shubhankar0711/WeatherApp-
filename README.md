@@ -1,4 +1,20 @@
-# WeatherApp-
-A mini weather app built with HTML, CSS, and JavaScript using WeatherAPI.
+# 🌤️ WeatherApp
 
-This is a simple and interactive Weather Application built using HTML, CSS, and JavaScript. The app fetches real-time weather data from the WeatherAPI and displays current weather conditions for any city entered by the user.
+A simple Weather App that fetches real-time weather data for any city using a weather API with secure API key handling.
+
+---
+
+## 📌 Features
+
+- Search weather by **city name**
+- Shows:
+  - Current temperature
+  - Weather condition (clear, cloudy, rainy, etc.)
+  - Feels-like temperature
+  - Humidity
+  - Wind speed
+
+## 🛠️ Tech Stack
+
+- **Frontend:** HTML, CSS, JavaScript  
+
